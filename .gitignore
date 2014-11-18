@@ -8,3 +8,4 @@ TODO
 *.swp
 syslog-gollector
 .DS_Store
+build/
