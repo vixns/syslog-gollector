@@ -173,13 +173,13 @@ func main() {
 	}()
 
 	// Connect to Kafka
-	kafka, err = output.NewKafkaProducer(prodChan, strings.Split(kBrokers, ","), kTopic, kBufferTime, kBufferBytes)
+	kafka, err = output.NewKafkaProducer(strings.Split(kBrokers, ","), kBufferTime, kBufferBytes)
 	if err != nil {
 		fmt.Println("Failed to create Kafka producer", err.Error())
 		os.Exit(1)
 	}
 	log.Printf("connected to kafka at %s", kBrokers)
-	go kafka.Start()
+	go kafka.Start(kTopic, prodChan)
 
 	// Start the event servers
 	tcpServer = input.NewTcpServer(tcpIface)

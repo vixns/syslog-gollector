@@ -13,8 +13,6 @@ import (
 type KafkaProducer struct {
 	saramaClient *sarama.Client
 	saramaProducer *sarama.Producer
-	topic string
-	incomingMessages <-chan string
 
 	registry metrics.Registry
 	eventsQd metrics.Counter
@@ -23,9 +21,7 @@ type KafkaProducer struct {
 }
 
 // Returns an initialized KafkaProducer.
-func NewKafkaProducer(msgChan <-chan string, brokers []string, topic string, bufferTime, bufferBytes int) (*KafkaProducer, error) {
-	kp := &KafkaProducer{}
-
+func NewKafkaProducer(brokers []string, bufferTime, bufferBytes int) (*KafkaProducer, error) {
 	client, err := newSaramaClient(brokers)
 	if err != nil {
 		log.Println("failed to create kafka client", err)
@@ -38,15 +34,15 @@ func NewKafkaProducer(msgChan <-chan string, brokers []string, topic string, buf
 		return nil, err
 	}
 
+	kp := &KafkaProducer{}
 	kp.saramaClient = client
 	kp.saramaProducer = producer
-	kp.incomingMessages = msgChan
-	kp.topic = topic
 
-	kp.registry = metrics.NewRegistry()
 	kp.eventsQd = metrics.NewCounter()
 	kp.errorsRx = metrics.NewCounter()
 	kp.errorsChannelEventsRx = metrics.NewCounter()
+
+	kp.registry = metrics.NewRegistry()
 	kp.registry.Register("events.enqueued", kp.eventsQd)
 	kp.registry.Register("errors.received", kp.errorsRx)
 	kp.registry.Register("errors.channel_events_received", kp.errorsChannelEventsRx)
@@ -78,13 +74,14 @@ func newSaramaProducer(client *sarama.Client, bufferTime, bufferBytes int) (*sar
 	return producer, nil
 }
 
-func (kp *KafkaProducer) Start() {
+func (kp *KafkaProducer) Start(topic string, messages <-chan string) {
+	errors := kp.saramaProducer.Errors()
 	for {
 		select {
-		case message := <-kp.incomingMessages:
+		case message := <-messages:
 			kp.eventsQd.Inc(1)
-			kp.saramaProducer.QueueMessage(kp.topic, nil, sarama.StringEncoder(message))
-		case error := <-kp.saramaProducer.Errors():
+			kp.saramaProducer.QueueMessage(topic, nil, sarama.StringEncoder(message))
+		case error := <-errors:
 			kp.errorsChannelEventsRx.Inc(1)
 			if error != nil {
 				kp.errorsRx.Inc(1)
