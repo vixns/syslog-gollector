@@ -1,7 +1,7 @@
 FROM flynn/busybox
 MAINTAINER Emmanuel Gomez <emmanuel@gomez.io>
 
-ADD ./stage/syslog-gollector /bin/syslog-gollector
+ADD stage/syslog-gollector /bin/
 
 # syslog
 EXPOSE 514
