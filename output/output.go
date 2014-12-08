@@ -20,18 +20,13 @@ type KafkaProducer struct {
 func NewKafkaProducer(msgChan <-chan string, brokers []string, topic string, bufferTime, bufferBytes int) (*KafkaProducer, error) {
 	kp := &KafkaProducer{}
 
-	clientConfig := sarama.NewClientConfig()
-	client, err := sarama.NewClient("gocollector", brokers, clientConfig)
+	client, err := newSaramaClient(brokers)
 	if err != nil {
 		log.Println("failed to create kafka client", err)
 		return nil, err
 	}
 
-	producerConfig := sarama.NewProducerConfig()
-	producerConfig.Partitioner = sarama.NewRandomPartitioner()
-	producerConfig.MaxBufferedBytes = uint32(bufferBytes)
-	producerConfig.MaxBufferTime = time.Duration(bufferTime) * time.Millisecond
-	producer, err := sarama.NewProducer(client, producerConfig)
+	producer, err := newSaramaProducer(client, bufferTime, bufferBytes)
 	if err != nil {
 		log.Println("failed to create kafka producer", err)
 		return nil, err
@@ -53,3 +48,26 @@ func (kp *KafkaProducer) Start() {
 		kp.saramaProducer.QueueMessage(kp.topic, nil, sarama.StringEncoder(message))
 	}
 }
+func newSaramaClient(brokers []string) (*sarama.Client, error) {
+	clientConfig := sarama.NewClientConfig()
+	client, err := sarama.NewClient("gocollector", brokers, clientConfig)
+
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
+}
+
+func newSaramaProducer(client *sarama.Client, bufferTime, bufferBytes int) (*sarama.Producer, error) {
+	producerConfig := sarama.NewProducerConfig()
+	producerConfig.Partitioner = sarama.NewRandomPartitioner()
+	producerConfig.MaxBufferedBytes = uint32(bufferBytes)
+	producerConfig.MaxBufferTime = time.Duration(bufferTime) * time.Millisecond
+	producer, err := sarama.NewProducer(client, producerConfig)
+
+	if err != nil {
+		return nil, err
+	}
+	return producer, nil
+}
+
