@@ -1,18 +1,22 @@
-build/container: stage/syslog-gollector Dockerfile
+binary_name=syslog-gollector
+docker_registry_account=emmanuel
+docker_tag=latest
+
+build/binary: *.go input/*.go output/*.go
+	GOOS=linux GOARCH=amd64 go build -o build/$(binary_name)
+
+stage/binary: build/$(binary_name)
+	mkdir -p stage
+	cp build/$(binary_name) stage/$(binary_name)
+
+build/container: stage/$(binary_name) Dockerfile
 	docker build --no-cache -t syslog-gollector .
 	touch build/container
 
-build/syslog-gollector: *.go
-	GOOS=linux GOARCH=amd64 go build -o build/syslog-gollector
-
-stage/syslog-gollector: build/syslog-gollector
-	mkdir -p stage
-	cp build/syslog-gollector stage/syslog-gollector
-
 release:
-	docker tag syslog-gollector emmanuel/syslog-gollector
-	docker push emmanuel/syslog-gollector
+	docker tag syslog-gollector $(docker_registry_account)/syslog-gollector:$(docker_tag)
+	docker push $(docker_registry_account)/syslog-gollector:$(docker_tag)
 
 .PHONY: clean
 clean:
-	rm -rf build
+	rm -rf {build,stage}
