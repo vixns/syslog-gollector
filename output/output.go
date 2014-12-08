@@ -43,11 +43,6 @@ func NewKafkaProducer(msgChan <-chan string, brokers []string, topic string, buf
 	return kp, nil
 }
 
-func (kp *KafkaProducer) Start() {
-	for message := range kp.incomingMessages {
-		kp.saramaProducer.QueueMessage(kp.topic, nil, sarama.StringEncoder(message))
-	}
-}
 func newSaramaClient(brokers []string) (*sarama.Client, error) {
 	clientConfig := sarama.NewClientConfig()
 	client, err := sarama.NewClient("gocollector", brokers, clientConfig)
@@ -71,3 +66,18 @@ func newSaramaProducer(client *sarama.Client, bufferTime, bufferBytes int) (*sar
 	return producer, nil
 }
 
+func (kp *KafkaProducer) Start() {
+	for {
+		select {
+		case message := <-kp.incomingMessages:
+			kp.eventsQd.Inc(1)
+			kp.saramaProducer.QueueMessage(kp.topic, nil, sarama.StringEncoder(message))
+		case error := <-kp.saramaProducer.Errors():
+			kp.errorsChannelEventsRx.Inc(1)
+			if error != nil {
+				kp.errorsRx.Inc(1)
+				log.Println("Kafka producer error: ", error)
+			}
+		}
+	}
+}
