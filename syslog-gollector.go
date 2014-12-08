@@ -176,6 +176,7 @@ func main() {
 		os.Exit(1)
 	}
 	log.Printf("connected to kafka at %s", kBrokers)
+	go kafka.Start()
 
 	// Start the event servers
 	tcpServer = input.NewTcpServer(tcpIface)

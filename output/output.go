@@ -37,7 +37,6 @@ func NewKafkaProducer(msgChan <-chan string, brokers []string, topic string, buf
 	kp.incomingMessages = msgChan
 	kp.topic = topic
 
-	go kp.Start()
 
 	log.Println("kafka producer created")
 	return kp, nil
