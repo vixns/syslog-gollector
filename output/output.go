@@ -3,7 +3,7 @@ package output
 import (
 	"time"
 
-	log "code.google.com/p/log4go"
+	"log"
 
 	"github.com/Shopify/sarama"
 )
@@ -19,7 +19,7 @@ func NewKafkaProducer(msgChan <-chan string, brokers []string, topic string, buf
 	clientConfig := sarama.NewClientConfig()
 	client, err := sarama.NewClient("gocollector", brokers, clientConfig)
 	if err != nil {
-		log.Error("failed to create kafka client", err)
+		log.Println("failed to create kafka client", err)
 		return nil, err
 	}
 
@@ -29,7 +29,7 @@ func NewKafkaProducer(msgChan <-chan string, brokers []string, topic string, buf
 	producerConfig.MaxBufferTime = time.Duration(bufferTime) * time.Millisecond
 	producer, err := sarama.NewProducer(client, producerConfig)
 	if err != nil {
-		log.Error("failed to create kafka producer", err)
+		log.Println("failed to create kafka producer", err)
 		return nil, err
 	}
 
@@ -39,6 +39,6 @@ func NewKafkaProducer(msgChan <-chan string, brokers []string, topic string, buf
 		}
 	}()
 
-	log.Info("kafka producer created")
+	log.Println("kafka producer mostly created")
 	return self, nil
 }
