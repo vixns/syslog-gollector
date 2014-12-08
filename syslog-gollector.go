@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/otoolep/syslog-gollector/input"
-	"github.com/otoolep/syslog-gollector/output"
+	"github.com/emmanuel/syslog-gollector/input"
+	"github.com/emmanuel/syslog-gollector/output"
 
 	log "code.google.com/p/log4go"
 )
