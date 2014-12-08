@@ -10,11 +10,15 @@ import (
 
 // A KafkaProducer encapsulates a connection to a Kafka cluster.
 type KafkaProducer struct {
+	saramaClient *sarama.Client
+	saramaProducer *sarama.Producer
+	topic string
+	incomingMessages <-chan string
 }
 
 // Returns an initialized KafkaProducer.
 func NewKafkaProducer(msgChan <-chan string, brokers []string, topic string, bufferTime, bufferBytes int) (*KafkaProducer, error) {
-	self := &KafkaProducer{}
+	kp := &KafkaProducer{}
 
 	clientConfig := sarama.NewClientConfig()
 	client, err := sarama.NewClient("gocollector", brokers, clientConfig)
@@ -33,12 +37,19 @@ func NewKafkaProducer(msgChan <-chan string, brokers []string, topic string, buf
 		return nil, err
 	}
 
-	go func() {
-		for message := range msgChan {
-			producer.QueueMessage(topic, nil, sarama.StringEncoder(message))
-		}
-	}()
+	kp.saramaClient = client
+	kp.saramaProducer = producer
+	kp.incomingMessages = msgChan
+	kp.topic = topic
 
-	log.Println("kafka producer mostly created")
-	return self, nil
+	go kp.Start()
+
+	log.Println("kafka producer created")
+	return kp, nil
+}
+
+func (kp *KafkaProducer) Start() {
+	for message := range kp.incomingMessages {
+		kp.saramaProducer.QueueMessage(kp.topic, nil, sarama.StringEncoder(message))
+	}
 }
