@@ -52,6 +52,13 @@ func NewTcpServer(iface string) *TcpServer {
 }
 
 // Start instructs the TcpServer to bind to the interface and accept connections.
+func (s *TcpServer) StartChan(messagesChan chan<- string) error {
+	return s.Start(func() chan<- string {
+		return messagesChan
+	})
+}
+
+// Start instructs the TcpServer to bind to the interface and accept connections.
 func (s *TcpServer) Start(f func() chan<- string) error {
 	ln, err := net.Listen("tcp", s.iface)
 	if err != nil {
@@ -127,6 +134,13 @@ func NewUdpServer(iface string) *UdpServer {
 	s.registry.Register("events.bytes.received", s.bytesRx)
 
 	return s
+}
+
+// Start instructs the UdpServer to start reading packets from the interface.
+func (s *UdpServer) StartChan(messagesChan chan<- string) error {
+	return s.Start(func() chan<- string {
+		return messagesChan
+	})
 }
 
 // Start instructs the UdpServer to start reading packets from the interface.
