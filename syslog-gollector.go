@@ -152,6 +152,8 @@ func main() {
 		parser = input.NewRfc5424Parser()
 		prodChan, err = parser.StreamingParse(rawChan)
 	} else {
+		// work around issue in ServeStatistics when parser is nil
+		parser = input.NewRfc5424Parser()
 		// Pass the input directly to the output
 		prodChan = rawChan
 	}
