@@ -58,18 +58,21 @@ func (s *TcpServer) Start(outputChan chan<- string) error {
 		return err
 	}
 
-	go func() {
-		for {
-			conn, err := ln.Accept()
-			if err != nil {
-				log.Println("failed to accept connection", err)
-				continue
-			}
-			log.Printf("accepted new connection from %s", conn.RemoteAddr().String())
-			go s.handleConnection(conn, outputChan)
-		}
-	}()
+	go s.acceptConnections(ln, outputChan)
+
 	return nil
+}
+
+func (s *TcpServer) acceptConnections(ln net.Listener, outputChan chan<- string) {
+	for {
+		conn, err := ln.Accept()
+		if err != nil {
+			log.Println("failed to accept connection", err)
+			continue
+		}
+		log.Printf("accepted new connection from %s", conn.RemoteAddr().String())
+		go s.handleConnection(conn, outputChan)
+	}
 }
 
 func (s *TcpServer) handleConnection(conn net.Conn, outputChan chan<- string) {
@@ -137,17 +140,21 @@ func (s *UdpServer) Start(outputChan chan<- string) error {
 		return err
 	}
 
-	go func() {
-		buf := make([]byte, msgBufSize)
-		for {
-			n, _, err := conn.ReadFromUDP(buf)
-			if err != nil {
-				log.Println("failed to read UDP", err)
-			}
-			s.eventsRx.Inc(1)
-			s.bytesRx.Inc(int64(len(buf)))
-			outputChan<- strings.Trim(string(buf[:n]), "\r\n")
-		}
-	}()
+	go s.readFromUDP(conn, outputChan)
+
 	return nil
+}
+
+// Start instructs the UdpServer to start reading packets from the interface.
+func (s *UdpServer) readFromUDP(conn *net.UDPConn, outputChan chan<- string) {
+	buf := make([]byte, msgBufSize)
+	for {
+		n, _, err := conn.ReadFromUDP(buf)
+		if err != nil {
+			log.Println("failed to read UDP", err)
+		}
+		s.eventsRx.Inc(1)
+		s.bytesRx.Inc(int64(len(buf)))
+		outputChan<- strings.Trim(string(buf[:n]), "\r\n")
+	}
 }
