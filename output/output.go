@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"github.com/Shopify/sarama"
+	"github.com/rcrowley/go-metrics"
 )
 
 // A KafkaProducer encapsulates a connection to a Kafka cluster.
@@ -14,6 +15,11 @@ type KafkaProducer struct {
 	saramaProducer *sarama.Producer
 	topic string
 	incomingMessages <-chan string
+
+	registry metrics.Registry
+	eventsQd metrics.Counter
+	errorsRx metrics.Counter
+	errorsChannelEventsRx metrics.Counter
 }
 
 // Returns an initialized KafkaProducer.
@@ -37,6 +43,13 @@ func NewKafkaProducer(msgChan <-chan string, brokers []string, topic string, buf
 	kp.incomingMessages = msgChan
 	kp.topic = topic
 
+	kp.registry = metrics.NewRegistry()
+	kp.eventsQd = metrics.NewCounter()
+	kp.errorsRx = metrics.NewCounter()
+	kp.errorsChannelEventsRx = metrics.NewCounter()
+	kp.registry.Register("events.enqueued", kp.eventsQd)
+	kp.registry.Register("errors.received", kp.errorsRx)
+	kp.registry.Register("errors.channel_events_received", kp.errorsChannelEventsRx)
 
 	log.Println("kafka producer created")
 	return kp, nil
@@ -79,4 +92,10 @@ func (kp *KafkaProducer) Start() {
 			}
 		}
 	}
+}
+
+// GetStatistics returns an object storing statistics, which supports JSON
+// marshalling.
+func (kp *KafkaProducer) GetStatistics() (metrics.Registry, error) {
+	return kp.registry, nil
 }

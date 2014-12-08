@@ -32,6 +32,7 @@ var cCapacity int
 var tcpServer *input.TcpServer
 var udpServer *input.UdpServer
 var parser *input.Rfc5424Parser
+var kafka *output.KafkaProducer
 
 // Diagnostic data
 var startTime time.Time
@@ -79,7 +80,7 @@ func isPretty(req *http.Request) (bool, error) {
 // ServeStatistics returns the statistics for the program
 func ServeStatistics(w http.ResponseWriter, req *http.Request) {
 	statistics := make(map[string]interface{})
-	resources := map[string]input.Statistics{"tcp": tcpServer, "udp": udpServer, "parser": parser}
+	resources := map[string]input.Statistics{"tcp": tcpServer, "udp": udpServer, "parser": parser, "kafka": kafka}
 	for k, v := range resources {
 		s, err := v.GetStatistics()
 		if err != nil {
@@ -172,7 +173,7 @@ func main() {
 	}()
 
 	// Connect to Kafka
-	_, err = output.NewKafkaProducer(prodChan, strings.Split(kBrokers, ","), kTopic, kBufferTime, kBufferBytes)
+	kafka, err = output.NewKafkaProducer(prodChan, strings.Split(kBrokers, ","), kTopic, kBufferTime, kBufferBytes)
 	if err != nil {
 		fmt.Println("Failed to create Kafka producer", err.Error())
 		os.Exit(1)
