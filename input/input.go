@@ -52,14 +52,7 @@ func NewTcpServer(iface string) *TcpServer {
 }
 
 // Start instructs the TcpServer to bind to the interface and accept connections.
-func (s *TcpServer) StartChan(messagesChan chan<- string) error {
-	return s.Start(func() chan<- string {
-		return messagesChan
-	})
-}
-
-// Start instructs the TcpServer to bind to the interface and accept connections.
-func (s *TcpServer) Start(f func() chan<- string) error {
+func (s *TcpServer) Start(outputChan chan<- string) error {
 	ln, err := net.Listen("tcp", s.iface)
 	if err != nil {
 		return err
@@ -73,13 +66,13 @@ func (s *TcpServer) Start(f func() chan<- string) error {
 				continue
 			}
 			log.Printf("accepted new connection from %s", conn.RemoteAddr().String())
-			go s.handleConnection(conn, f)
+			go s.handleConnection(conn, outputChan)
 		}
 	}()
 	return nil
 }
 
-func (s *TcpServer) handleConnection(conn net.Conn, f func() chan<- string) {
+func (s *TcpServer) handleConnection(conn net.Conn, outputChan chan<- string) {
 	s.connectionsActive.Inc(1)
 	defer conn.Close()
 	defer s.connectionsActive.Dec(1)
@@ -105,7 +98,7 @@ func (s *TcpServer) handleConnection(conn net.Conn, f func() chan<- string) {
 		if match {
 			s.eventsRx.Inc(1)
 			s.bytesRx.Inc(int64(len(event)))
-			f() <- event
+			outputChan<- event
 		}
 	}
 }
@@ -137,14 +130,7 @@ func NewUdpServer(iface string) *UdpServer {
 }
 
 // Start instructs the UdpServer to start reading packets from the interface.
-func (s *UdpServer) StartChan(messagesChan chan<- string) error {
-	return s.Start(func() chan<- string {
-		return messagesChan
-	})
-}
-
-// Start instructs the UdpServer to start reading packets from the interface.
-func (s *UdpServer) Start(f func() chan<- string) error {
+func (s *UdpServer) Start(outputChan chan<- string) error {
 	conn, err := net.ListenUDP("udp", s.udpAddr)
 	if err != nil {
 		log.Println("failed to start UDP server", err)
@@ -160,7 +146,7 @@ func (s *UdpServer) Start(f func() chan<- string) error {
 			}
 			s.eventsRx.Inc(1)
 			s.bytesRx.Inc(int64(len(buf)))
-			f() <- strings.Trim(string(buf[:n]), "\r\n")
+			outputChan<- strings.Trim(string(buf[:n]), "\r\n")
 		}
 	}()
 	return nil

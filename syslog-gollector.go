@@ -183,7 +183,7 @@ func main() {
 
 	// Start the event servers
 	tcpServer = input.NewTcpServer(tcpIface)
-	err = tcpServer.StartChan(rawChan)
+	err = tcpServer.Start(rawChan)
 	if err != nil {
 		fmt.Println("Failed to start TCP server", err.Error())
 		os.Exit(1)
@@ -191,7 +191,7 @@ func main() {
 	log.Printf("listening on %s for TCP connections", tcpIface)
 
 	udpServer = input.NewUdpServer(udpIface)
-	err = udpServer.StartChan(rawChan)
+	err = udpServer.Start(rawChan)
 	if err != nil {
 		fmt.Println("Failed to start UDP server", err.Error())
 		os.Exit(1)
