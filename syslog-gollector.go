@@ -59,8 +59,8 @@ func init() {
 	flag.StringVar(&kBrokers, "broker", kafkaBrokers, "comma-delimited kafka brokers")
 	flag.StringVar(&kTopic, "topic", kafkaTopic, "kafka topic")
 	flag.IntVar(&kBatch, "batch", kafkaBatch, "Kafka batch size")
-	flag.IntVar(&kBufferTime, "maxbuff", kafkaBufferTime, "Kafka client buffer max time (ms)")
-	flag.IntVar(&kBufferBytes, "maxbytes", kafkaBufferBytes, "Kafka client buffer max bytes")
+	flag.IntVar(&kBufferTime, "maxbufftime", kafkaBufferTime, "Kafka client buffer max time (ms)")
+	flag.IntVar(&kBufferBytes, "maxbuffbytes", kafkaBufferBytes, "Kafka client buffer max bytes")
 	flag.BoolVar(&pEnabled, "parse", parseEnabled, "enable syslog header parsing")
 	flag.IntVar(&cCapacity, "chancap", chanCapacity, "channel buffering capacity")
 }
