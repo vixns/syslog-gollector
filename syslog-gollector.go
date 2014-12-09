@@ -30,8 +30,8 @@ var cCapacity int
 
 // Program resources
 var kafka *output.KafkaProducer
-var tcpHandler *InstrumentedChannelHandler
-var udpHandler *InstrumentedChannelHandler
+var tcpHandler *ChannelHandler
+var udpHandler *ChannelHandler
 
 // Diagnostic data
 var startTime time.Time
@@ -144,7 +144,7 @@ func main() {
 	log.Printf("channel buffering capacity: %d", cCapacity)
 
 	logPartsChan := make(syslog.LogPartsChannel)
-	udpHandler = NewInstrumentedChannelHandler(logPartsChan)
+	udpHandler = NewChannelHandler(logPartsChan)
 
 	server := syslog.NewServer()
 	// server.SetFormat(syslog.RFC3164)
@@ -154,7 +154,7 @@ func main() {
 	server.Boot()
 
 	logPartsChan2 := make(syslog.LogPartsChannel)
-	tcpHandler = NewInstrumentedChannelHandler(logPartsChan2)
+	tcpHandler = NewChannelHandler(logPartsChan2)
 
 	// Configure and start the Admin server
 	http.HandleFunc("/statistics", ServeStatistics)
