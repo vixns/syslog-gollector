@@ -5,8 +5,9 @@ import (
 
 	"log"
 
-	"github.com/Shopify/sarama"
+	"github.com/emmanuel/go-syslog"
 	"github.com/rcrowley/go-metrics"
+	"github.com/Shopify/sarama"
 )
 
 // A KafkaProducer encapsulates a connection to a Kafka cluster.
@@ -74,12 +75,13 @@ func newSaramaProducer(client *sarama.Client, bufferTime, bufferBytes int) (*sar
 	return producer, nil
 }
 
-func (kp *KafkaProducer) Start(topic string, messages <-chan string) {
+func (kp *KafkaProducer) Start(topic string, logPartsChan syslog.LogPartsChannel) {
 	errors := kp.saramaProducer.Errors()
 	for {
 		select {
-		case message := <-messages:
 			kp.eventsQd.Inc(1)
+		case logParts := <-logPartsChan:
+			message, _ := json.Marshal(logParts)
 			kp.saramaProducer.QueueMessage(topic, nil, sarama.StringEncoder(message))
 		case error := <-errors:
 			kp.errorsChannelEventsRx.Inc(1)

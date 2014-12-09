@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/emmanuel/syslog-gollector/input"
+	"github.com/emmanuel/go-syslog"
 	"github.com/emmanuel/syslog-gollector/output"
 
 	"log"
@@ -29,10 +29,9 @@ var pEnabled bool
 var cCapacity int
 
 // Program resources
-var tcpServer *input.TcpServer
-var udpServer *input.UdpServer
-var parser *input.Rfc5424Parser
 var kafka *output.KafkaProducer
+var tcpHandler *InstrumentedChannelHandler
+var udpHandler *InstrumentedChannelHandler
 
 // Diagnostic data
 var startTime time.Time
@@ -80,7 +79,7 @@ func isPretty(req *http.Request) (bool, error) {
 // ServeStatistics returns the statistics for the program
 func ServeStatistics(w http.ResponseWriter, req *http.Request) {
 	statistics := make(map[string]interface{})
-	resources := map[string]input.Statistics{"tcp": tcpServer, "udp": udpServer, "parser": parser, "kafka": kafka}
+	resources := map[string]Statistics{"tcp": tcpHandler, "udp": udpHandler, "kafka": kafka}
 	for k, v := range resources {
 		s, err := v.GetStatistics()
 		if err != nil {
@@ -144,20 +143,18 @@ func main() {
 	log.Printf("parsing enabled: %t", pEnabled)
 	log.Printf("channel buffering capacity: %d", cCapacity)
 
-	// Prep the channels
-	rawChan := make(chan string, cCapacity)
-	prodChan := make(chan string, cCapacity)
+	logPartsChan := make(syslog.LogPartsChannel)
+	udpHandler = NewInstrumentedChannelHandler(logPartsChan)
 
-	if pEnabled {
-		// Feed the input through the Parser stage
-		parser = input.NewRfc5424Parser()
-		prodChan, err = parser.StreamingParse(rawChan)
-	} else {
-		// work around issue in ServeStatistics when parser is nil
-		parser = input.NewRfc5424Parser()
-		// Pass the input directly to the output
-		prodChan = rawChan
-	}
+	server := syslog.NewServer()
+	// server.SetFormat(syslog.RFC3164)
+	server.SetFormat(syslog.Passthru)
+	server.SetHandler(udpHandler)
+	server.ListenUDP(udpIface)
+	server.Boot()
+
+	logPartsChan2 := make(syslog.LogPartsChannel)
+	tcpHandler = NewInstrumentedChannelHandler(logPartsChan2)
 
 	// Configure and start the Admin server
 	http.HandleFunc("/statistics", ServeStatistics)
@@ -179,25 +176,7 @@ func main() {
 		os.Exit(1)
 	}
 	log.Printf("connected to kafka at %s", kBrokers)
-	go kafka.Start(kTopic, prodChan)
+	go kafka.Start(kTopic, logPartsChan)
 
-	// Start the event servers
-	tcpServer = input.NewTcpServer(tcpIface)
-	err = tcpServer.Start(rawChan)
-	if err != nil {
-		fmt.Println("Failed to start TCP server", err.Error())
-		os.Exit(1)
-	}
-	log.Printf("listening on %s for TCP connections", tcpIface)
-
-	udpServer = input.NewUdpServer(udpIface)
-	err = udpServer.Start(rawChan)
-	if err != nil {
-		fmt.Println("Failed to start UDP server", err.Error())
-		os.Exit(1)
-	}
-	log.Printf("listening on %s for UDP packets", udpIface)
-
-	// Spin forever
-	select {}
+	server.Wait()
 }

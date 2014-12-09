@@ -2,7 +2,7 @@ binary_name=syslog-gollector
 docker_registry_account=emmanuel
 docker_tag=latest
 
-build/binary: *.go input/*.go output/*.go
+build/binary: *.go output/*.go
 	GOOS=linux GOARCH=amd64 go build -o build/$(binary_name)
 
 stage/binary: build/$(binary_name)
