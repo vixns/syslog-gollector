@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/emmanuel/go-syslog"
-	"github.com/emmanuel/syslog-gollector/output"
 
 	"log"
 )
@@ -29,7 +28,7 @@ var pEnabled bool
 var cCapacity int
 
 // Program resources
-var kafka *output.KafkaProducer
+var kafka *KafkaProducer
 var tcpHandler *ChannelHandler
 var udpHandler *ChannelHandler
 
@@ -79,7 +78,7 @@ func isPretty(req *http.Request) (bool, error) {
 // ServeStatistics returns the statistics for the program
 func ServeStatistics(w http.ResponseWriter, req *http.Request) {
 	statistics := make(map[string]interface{})
-	resources := map[string]Statistics{"tcp": tcpHandler, "udp": udpHandler, "kafka": kafka}
+	resources := map[string]Statistics{"tcp": tcpHandler, "udp": udpHandler, "output": kafka}
 	for k, v := range resources {
 		s, err := v.GetStatistics()
 		if err != nil {
@@ -170,7 +169,7 @@ func main() {
 	}()
 
 	// Connect to Kafka
-	kafka, err = output.NewKafkaProducer(strings.Split(kBrokers, ","), kBufferTime, kBufferBytes)
+	kafka, err = NewKafkaProducer(strings.Split(kBrokers, ","), kBufferTime, kBufferBytes)
 	if err != nil {
 		fmt.Println("Failed to create Kafka producer", err.Error())
 		os.Exit(1)
