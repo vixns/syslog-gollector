@@ -1,6 +1,7 @@
 package output
 
 import (
+	"encoding/json"
 	"time"
 
 	"log"
@@ -16,9 +17,9 @@ type KafkaProducer struct {
 	saramaProducer *sarama.Producer
 
 	registry metrics.Registry
-	eventsQd metrics.Counter
+	messagesQd metrics.Counter
 	errorsRx metrics.Counter
-	errorsChannelEventsRx metrics.Counter
+	errorsChannelMessagesRx metrics.Counter
 }
 
 // Returns an initialized KafkaProducer.
@@ -39,14 +40,14 @@ func NewKafkaProducer(brokers []string, bufferTime, bufferBytes int) (*KafkaProd
 	kp.saramaClient = client
 	kp.saramaProducer = producer
 
-	kp.eventsQd = metrics.NewCounter()
+	kp.messagesQd = metrics.NewCounter()
 	kp.errorsRx = metrics.NewCounter()
-	kp.errorsChannelEventsRx = metrics.NewCounter()
+	kp.errorsChannelMessagesRx = metrics.NewCounter()
 
 	kp.registry = metrics.NewRegistry()
-	kp.registry.Register("events.enqueued", kp.eventsQd)
+	kp.registry.Register("messages.enqueued", kp.messagesQd)
 	kp.registry.Register("errors.received", kp.errorsRx)
-	kp.registry.Register("errors.channel_events_received", kp.errorsChannelEventsRx)
+	kp.registry.Register("errors.channel_messages_received", kp.errorsChannelMessagesRx)
 
 	log.Println("kafka producer created")
 	return kp, nil
@@ -79,12 +80,12 @@ func (kp *KafkaProducer) Start(topic string, logPartsChan syslog.LogPartsChannel
 	errors := kp.saramaProducer.Errors()
 	for {
 		select {
-			kp.eventsQd.Inc(1)
 		case logParts := <-logPartsChan:
+			kp.messagesQd.Inc(1)
 			message, _ := json.Marshal(logParts)
 			kp.saramaProducer.QueueMessage(topic, nil, sarama.StringEncoder(message))
 		case error := <-errors:
-			kp.errorsChannelEventsRx.Inc(1)
+			kp.errorsChannelMessagesRx.Inc(1)
 			if error != nil {
 				kp.errorsRx.Inc(1)
 				log.Println("Kafka producer error: ", error)
