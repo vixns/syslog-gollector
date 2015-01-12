@@ -60,7 +60,6 @@ func newSaramaClient(brokers []string) (*sarama.Client, error) {
 	} else {
     	log.Println("> connected")
 	}
-	defer client.Close()
 	return client, nil
 }
 
@@ -75,7 +74,6 @@ func newSaramaProducer(client *sarama.Client, bufferTime, bufferBytes int) (*sar
 	if err != nil {
 		return nil, err
 	}
-	defer producer.Close()
 	return producer, nil
 }
 
