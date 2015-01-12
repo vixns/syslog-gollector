@@ -146,8 +146,7 @@ func main() {
 	udpHandler = NewChannelHandler(logPartsChan)
 
 	server := syslog.NewServer()
-	// server.SetFormat(syslog.RFC3164)
-	server.SetFormat(syslog.Passthru)
+	server.SetFormat(syslog.RFC5424)
 	server.SetHandler(udpHandler)
 	server.ListenUDP(udpIface)
 	server.Boot()
