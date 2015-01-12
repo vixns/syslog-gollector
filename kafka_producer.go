@@ -2,13 +2,12 @@ package main
 
 import (
 	"encoding/json"
-	"time"
 
 	"log"
 
 	"github.com/emmanuel/go-syslog"
 	"github.com/rcrowley/go-metrics"
-	"github.com/otoolep/sarama"
+	"github.com/Shopify/sarama"
 )
 
 // A KafkaProducer encapsulates a connection to a Kafka cluster.
@@ -56,23 +55,27 @@ func NewKafkaProducer(brokers []string, bufferTime, bufferBytes int) (*KafkaProd
 func newSaramaClient(brokers []string) (*sarama.Client, error) {
 	clientConfig := sarama.NewClientConfig()
 	client, err := sarama.NewClient("gocollector", brokers, clientConfig)
-
 	if err != nil {
-		return nil, err
+    	return nil, err
+	} else {
+    	log.Println("> connected")
 	}
+	defer client.Close()
 	return client, nil
 }
 
 func newSaramaProducer(client *sarama.Client, bufferTime, bufferBytes int) (*sarama.Producer, error) {
+
 	producerConfig := sarama.NewProducerConfig()
-	producerConfig.Partitioner = sarama.NewRandomPartitioner()
-	producerConfig.MaxBufferedBytes = uint32(bufferBytes)
-	producerConfig.MaxBufferTime = uint32(time.Duration(bufferTime) * time.Millisecond)
+	producerConfig.Partitioner = sarama.NewRandomPartitioner
+	producerConfig.MaxMessageBytes = bufferBytes
+	//producerConfig.MaxBufferTime = uint32(bufferTime)
 	producer, err := sarama.NewProducer(client, producerConfig)
 
 	if err != nil {
 		return nil, err
 	}
+	defer producer.Close()
 	return producer, nil
 }
 
@@ -83,7 +86,7 @@ func (kp *KafkaProducer) Start(topic string, logPartsChan syslog.LogPartsChannel
 		case logParts := <-logPartsChan:
 			kp.messagesQd.Inc(1)
 			message, _ := json.Marshal(logParts)
-			kp.saramaProducer.QueueMessage(topic, nil, sarama.StringEncoder(message))
+			kp.saramaProducer.Input() <- &sarama.MessageToSend{Topic: topic, Key: nil, Value: sarama.StringEncoder(message)}
 		case error := <-errors:
 			kp.errorsChannelMessagesRx.Inc(1)
 			if error != nil {
