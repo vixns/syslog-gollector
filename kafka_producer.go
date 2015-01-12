@@ -8,7 +8,7 @@ import (
 
 	"github.com/emmanuel/go-syslog"
 	"github.com/rcrowley/go-metrics"
-	"github.com/Shopify/sarama"
+	"github.com/otoolep/sarama"
 )
 
 // A KafkaProducer encapsulates a connection to a Kafka cluster.
@@ -67,7 +67,7 @@ func newSaramaProducer(client *sarama.Client, bufferTime, bufferBytes int) (*sar
 	producerConfig := sarama.NewProducerConfig()
 	producerConfig.Partitioner = sarama.NewRandomPartitioner()
 	producerConfig.MaxBufferedBytes = uint32(bufferBytes)
-	producerConfig.MaxBufferTime = time.Duration(bufferTime) * time.Millisecond
+	producerConfig.MaxBufferTime = uint32(time.Duration(bufferTime) * time.Millisecond)
 	producer, err := sarama.NewProducer(client, producerConfig)
 
 	if err != nil {
