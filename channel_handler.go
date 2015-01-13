@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/emmanuel/go-syslog"
-	"github.com/jeromer/syslogparser"
+	"github.com/vixns/go-syslog"
+	"github.com/vixns/syslogparser"
 	"github.com/rcrowley/go-metrics"
 )
 

@@ -5,7 +5,7 @@ import (
 
 	"log"
 
-	"github.com/emmanuel/go-syslog"
+	"github.com/vixns/go-syslog"
 	"github.com/rcrowley/go-metrics"
 	"github.com/Shopify/sarama"
 )
